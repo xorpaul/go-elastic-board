@@ -97,7 +97,7 @@ const dashboardHTML = `
         <header class="mb-4 flex justify-between items-center">
             <div>
                 <h1 class="text-4xl font-bold text-gray-900 dark:text-white">go-elastic-board</h1>
-                <p class="text-gray-600 dark:text-gray-300 mt-2">Real-time Elasticsearch cluster monitoring</p>
+                <p class="text-gray-600 dark:text-gray-300 mt-2">Real-time Elasticsearch cluster monitoring <a href="https://github.com/xorpaul/go-elastic-board" class="text-indigo-600 dark:text-indigo-400 hover:underline">GitHub go-elastic-board project</a></p>
             </div>
             <div class="flex items-center gap-4">
                 <div class="flex items-center gap-2">
