@@ -1,0 +1,93 @@
+# Example configuration for go-elastic-board
+# Copy this file to config.yaml and modify as needed
+
+# Server Configuration
+server:
+  # Address to bind to (empty string means all interfaces)
+  # Use "127.0.0.1" or "localhost" to bind only to localhost
+  # Use "0.0.0.0" or leave empty to bind to all interfaces
+  address: ""
+
+  # Port to listen on
+  port: "8080"
+
+# TLS Configuration for Client Certificate Authentication
+tls:
+  # Enable or disable TLS client certificate authentication
+  # Set to false to disable TLS and run in HTTP mode
+  enabled: true
+
+  # Path to the Certificate Authority (CA) file
+  # This CA will be used to verify client certificates
+  ca_file: "/path/to/ca.crt"
+
+  # Path to the server certificate file
+  # This is the certificate presented by the web server
+  cert_file: "/path/to/server.crt"
+
+  # Path to the server private key file
+  # This is the private key for the server certificate
+  key_file: "/path/to/server.key"
+
+  # List of allowed Common Names (CN) from client certificates
+  # Only clients with certificates containing these CNs will be allowed access
+  # You can use specific usernames, service names, or any CN values
+  allowed_cns:
+    - "admin"
+    - "elasticsearch-user"
+    - "monitoring-service"
+    - "john.doe"
+    - "jane.smith"
+# Usage Examples:
+#
+# 1. To run on a different port (e.g., 9090):
+#    server:
+#      address: ""
+#      port: "9090"
+#
+# 2. To bind only to localhost:
+#    server:
+#      address: "127.0.0.1"
+#      port: "8080"
+#
+# 3. To bind to a specific interface:
+#    server:
+#      address: "192.168.1.100"
+#      port: "8080"
+#
+# 4. To disable TLS and run in HTTP mode:
+#    server:
+#      address: ""
+#      port: "8080"
+#    tls:
+#      enabled: false
+#
+# 5. To run with TLS but allow any valid certificate (no CN restrictions):
+#    server:
+#      address: ""
+#      port: "8443"
+#    tls:
+#      enabled: true
+#      ca_file: "/etc/ssl/certs/ca.crt"
+#      cert_file: "/etc/ssl/certs/server.crt"
+#      key_file: "/etc/ssl/private/server.key"
+#      allowed_cns: []  # Empty list allows any valid certificate
+#
+# 6. To run with strict CN validation:
+#    server:
+#      address: ""
+#      port: "8443"
+#    tls:
+#      enabled: true
+#      ca_file: "/etc/ssl/certs/ca.crt"
+#      cert_file: "/etc/ssl/certs/server.crt"
+#      key_file: "/etc/ssl/private/server.key"
+#      allowed_cns:
+#        - "specific-user"
+#        - "another-allowed-user"
+
+# Run the application with:
+# ./go-elastic-board -config config.yaml
+#
+# Or run without config file to disable TLS:
+# ./go-elastic-board
