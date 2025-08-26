@@ -225,4 +225,17 @@ The dashboard provides a comprehensive view of your Elasticsearch cluster with:
 
 ---
 
+### Run with Docker Compose (no Elasticsearch container)
+
+This repository ships with a lean Docker setup under `docker/` that runs the dashboard only.  
+It assumes you already have access to an Elasticsearch endpoint.
+- remember to change docker/config.yaml according to your needs
+
+**Quickstart**
+```bash
+git clone https://github.com/xorpaul/go-elastic-board.git
+cd go-elastic-board
+cd docker
+sudo docker compose up -d --build
+```
 **go-elastic-board** - Simple, powerful Elasticsearch cluster monitoring made easy.
