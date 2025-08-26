@@ -87,6 +87,10 @@ server:
   address: "" # Bind to all interfaces (use "127.0.0.1" for localhost only)
   port: "8080" # Port to listen on
 
+# Elasticsearch host
+elasticsearch:
+  url: "http://localhost:9200"
+
 # TLS Configuration (optional)
 tls:
   enabled: false # Set to true to enable client certificate authentication
@@ -131,8 +135,7 @@ Options:
 
 1. Start the go-elastic-board server
 2. Open your web browser to the configured address (default: http://localhost:8080)
-3. Enter your Elasticsearch cluster URL (e.g., `http://elasticsearch:9200`)
-4. Click "Start" to begin monitoring
+3. Click "Start" to begin monitoring
 
 ### Dashboard Features
 
