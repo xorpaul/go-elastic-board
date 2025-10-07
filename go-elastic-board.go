@@ -2,6 +2,7 @@
 package main
 
 import (
+	"context"
 	"crypto/tls"
 	"crypto/x509"
 	"embed" // Import the embed package
@@ -13,8 +14,14 @@ import (
 	"maps"
 	"net/http"
 	"os"
+	"os/signal"
+	"path/filepath"
 	"strings"
+	"sync"
+	"syscall"
+	"time"
 
+	"github.com/fsnotify/fsnotify"
 	yaml "gopkg.in/yaml.v3"
 )
 
@@ -42,13 +49,186 @@ type Config struct {
 	TLS    TLSConfig    `yaml:"tls"`
 }
 
+// CertificateManager handles automatic reloading of TLS certificates
+type CertificateManager struct {
+	certFile    string
+	keyFile     string
+	caFile      string
+	certificate *tls.Certificate
+	caCertPool  *x509.CertPool
+	mutex       sync.RWMutex
+	watcher     *fsnotify.Watcher
+	logger      *log.Logger
+}
+
 var (
 	buildversion string
 	buildtime    string
 	debug        bool
 	verbose      bool
 	config       Config
+	certManager  *CertificateManager
 )
+
+// NewCertificateManager creates a new certificate manager with file watching
+func NewCertificateManager(certFile, keyFile, caFile string) (*CertificateManager, error) {
+	cm := &CertificateManager{
+		certFile: certFile,
+		keyFile:  keyFile,
+		caFile:   caFile,
+		logger:   log.New(os.Stdout, "[CertManager] ", log.LstdFlags),
+	}
+
+	// Initial load of certificates
+	if err := cm.loadCertificates(); err != nil {
+		return nil, fmt.Errorf("failed to load initial certificates: %v", err)
+	}
+
+	// Set up file watcher
+	watcher, err := fsnotify.NewWatcher()
+	if err != nil {
+		return nil, fmt.Errorf("failed to create file watcher: %v", err)
+	}
+	cm.watcher = watcher
+
+	// Watch certificate files
+	if err := cm.watchFiles(); err != nil {
+		watcher.Close()
+		return nil, fmt.Errorf("failed to watch certificate files: %v", err)
+	}
+
+	// Start watching for file changes in a goroutine
+	go cm.watchForChanges()
+
+	cm.logger.Printf("Certificate manager initialized, watching: %s, %s, %s", certFile, keyFile, caFile)
+	return cm, nil
+}
+
+// loadCertificates loads the server certificate, key, and CA certificate
+func (cm *CertificateManager) loadCertificates() error {
+	cm.mutex.Lock()
+	defer cm.mutex.Unlock()
+
+	// Load server certificate and key
+	cert, err := tls.LoadX509KeyPair(cm.certFile, cm.keyFile)
+	if err != nil {
+		return fmt.Errorf("failed to load server certificate: %v", err)
+	}
+	cm.certificate = &cert
+
+	// Load CA certificate
+	caCert, err := os.ReadFile(cm.caFile)
+	if err != nil {
+		return fmt.Errorf("failed to read CA file: %v", err)
+	}
+
+	caCertPool := x509.NewCertPool()
+	if !caCertPool.AppendCertsFromPEM(caCert) {
+		return fmt.Errorf("failed to parse CA certificate")
+	}
+	cm.caCertPool = caCertPool
+
+	cm.logger.Printf("Certificates loaded successfully")
+	return nil
+}
+
+// watchFiles adds certificate files to the file watcher
+func (cm *CertificateManager) watchFiles() error {
+	files := []string{cm.certFile, cm.keyFile, cm.caFile}
+
+	for _, file := range files {
+		// Watch the directory containing the file (some tools replace files atomically)
+		dir := filepath.Dir(file)
+		if err := cm.watcher.Add(dir); err != nil {
+			return fmt.Errorf("failed to watch directory %s: %v", dir, err)
+		}
+
+		// Also watch the file itself
+		if err := cm.watcher.Add(file); err != nil {
+			cm.logger.Printf("Warning: failed to watch file %s directly: %v", file, err)
+		}
+	}
+
+	return nil
+}
+
+// watchForChanges monitors file system events and reloads certificates when needed
+func (cm *CertificateManager) watchForChanges() {
+	defer cm.watcher.Close()
+
+	// Debounce rapid file changes (common with atomic file replacements)
+	debounceTimer := time.NewTimer(0)
+	if !debounceTimer.Stop() {
+		<-debounceTimer.C
+	}
+
+	for {
+		select {
+		case event, ok := <-cm.watcher.Events:
+			if !ok {
+				return
+			}
+
+			// Check if the event affects any of our certificate files
+			if cm.isRelevantFile(event.Name) {
+				if debug {
+					cm.logger.Printf("File system event: %s %s", event.Op.String(), event.Name)
+				}
+
+				// Reset the debounce timer
+				debounceTimer.Reset(500 * time.Millisecond)
+			}
+
+		case err, ok := <-cm.watcher.Errors:
+			if !ok {
+				return
+			}
+			cm.logger.Printf("Watcher error: %v", err)
+
+		case <-debounceTimer.C:
+			// Reload certificates after debounce period
+			cm.logger.Printf("Certificate files changed, reloading...")
+			if err := cm.loadCertificates(); err != nil {
+				cm.logger.Printf("Failed to reload certificates: %v", err)
+			} else {
+				cm.logger.Printf("Certificates reloaded successfully")
+			}
+		}
+	}
+}
+
+// isRelevantFile checks if a file path is one of our certificate files
+func (cm *CertificateManager) isRelevantFile(filePath string) bool {
+	files := []string{cm.certFile, cm.keyFile, cm.caFile}
+	for _, file := range files {
+		if filePath == file || filepath.Base(filePath) == filepath.Base(file) {
+			return true
+		}
+	}
+	return false
+}
+
+// GetCertificate returns the current server certificate for TLS configuration
+func (cm *CertificateManager) GetCertificate(*tls.ClientHelloInfo) (*tls.Certificate, error) {
+	cm.mutex.RLock()
+	defer cm.mutex.RUnlock()
+	return cm.certificate, nil
+}
+
+// GetCACertPool returns the current CA certificate pool
+func (cm *CertificateManager) GetCACertPool() *x509.CertPool {
+	cm.mutex.RLock()
+	defer cm.mutex.RUnlock()
+	return cm.caCertPool
+}
+
+// Close stops the file watcher and cleans up resources
+func (cm *CertificateManager) Close() error {
+	if cm.watcher != nil {
+		return cm.watcher.Close()
+	}
+	return nil
+}
 
 // loadConfig loads configuration from YAML file
 func loadConfig(configFile string) error {
@@ -188,28 +368,31 @@ func main() {
 	}
 
 	// Print a message to the console indicating the server is running
-	fmt.Printf("go-elastic-board server version %s with build time %s starting on http://%s\n", buildversion, buildtime, listenAddr)
+	protocol := "http"
+	if config.TLS.Enabled {
+		protocol = "https"
+	}
+	fmt.Printf("go-elastic-board server version %s with build time %s starting on %s://%s\n", buildversion, buildtime, protocol, listenAddr)
 	fmt.Println("All static assets are embedded. You can now run this binary by itself.")
 
 	if config.TLS.Enabled {
 		fmt.Printf("TLS client certificate authentication enabled with CA: %s\n", config.TLS.CAFile)
 		fmt.Printf("Allowed client certificate CNs: %v\n", config.TLS.AllowedCNs)
 
-		// Load CA certificate
-		caCert, err := os.ReadFile(config.TLS.CAFile)
+		// Initialize certificate manager with file watching
+		var err error
+		certManager, err = NewCertificateManager(config.TLS.CertFile, config.TLS.KeyFile, config.TLS.CAFile)
 		if err != nil {
-			log.Fatalf("Failed to read CA file: %v", err)
+			log.Fatalf("Failed to initialize certificate manager: %v", err)
 		}
 
-		caCertPool := x509.NewCertPool()
-		if !caCertPool.AppendCertsFromPEM(caCert) {
-			log.Fatalf("Failed to parse CA certificate")
-		}
-
-		// Configure TLS
+		// Configure TLS with certificate manager
 		tlsConfig := &tls.Config{
-			ClientAuth: tls.RequireAndVerifyClientCert,
-			ClientCAs:  caCertPool,
+			ClientAuth:     tls.RequireAndVerifyClientCert,
+			ClientCAs:      certManager.GetCACertPool(),
+			GetCertificate: certManager.GetCertificate,
+			// Enable automatic certificate reloading
+			GetClientCertificate: nil,
 		}
 
 		server := &http.Server{
@@ -217,8 +400,47 @@ func main() {
 			TLSConfig: tlsConfig,
 		}
 
-		// Start HTTPS server with client certificate authentication
-		log.Fatal(server.ListenAndServeTLS(config.TLS.CertFile, config.TLS.KeyFile))
+		fmt.Printf("Certificate monitoring enabled - certificates will be automatically reloaded on file changes\n")
+
+		// Set up graceful shutdown
+		ctx, cancel := context.WithCancel(context.Background())
+		defer cancel()
+
+		// Handle shutdown signals
+		sigChan := make(chan os.Signal, 1)
+		signal.Notify(sigChan, syscall.SIGINT, syscall.SIGTERM)
+
+		// Start server in a goroutine
+		serverErr := make(chan error, 1)
+		go func() {
+			// Use ListenAndServeTLS for TLS-enabled server
+			serverErr <- server.ListenAndServeTLS("", "")
+		}()
+
+		// Wait for shutdown signal or server error
+		select {
+		case err := <-serverErr:
+			if err != nil && err != http.ErrServerClosed {
+				log.Fatalf("Server error: %v", err)
+			}
+		case sig := <-sigChan:
+			log.Printf("Received signal %s, shutting down gracefully...", sig)
+
+			// Shutdown server with timeout
+			shutdownCtx, shutdownCancel := context.WithTimeout(ctx, 5*time.Second)
+			defer shutdownCancel()
+
+			if err := server.Shutdown(shutdownCtx); err != nil {
+				log.Printf("Server shutdown error: %v", err)
+			}
+
+			// Clean up certificate manager
+			if err := certManager.Close(); err != nil {
+				log.Printf("Certificate manager cleanup error: %v", err)
+			} else {
+				log.Printf("Certificate manager stopped")
+			}
+		}
 	} else {
 		// Start HTTP server without TLS
 		log.Fatal(http.ListenAndServe(listenAddr, nil))

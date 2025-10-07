@@ -34,9 +34,11 @@ A powerful, real-time Elasticsearch cluster monitoring dashboard written in Go. 
 ### 🔒 **Security Features**
 
 - Optional TLS client certificate authentication
+- **Automatic certificate reloading** - certificates are monitored and reloaded without restart
 - Configurable allowed CN (Common Name) lists
 - CA certificate validation
 - Support for both HTTP and HTTPS modes
+- Graceful shutdown with proper resource cleanup
 
 ### 🖥️ **System Information**
 
@@ -112,6 +114,31 @@ tls:
     - "elasticsearch-admin"
     - "monitoring-service"
 ```
+
+### Automatic Certificate Reloading
+
+When TLS is enabled, go-elastic-board automatically monitors certificate files for changes and reloads them without requiring a server restart. This is particularly useful for:
+
+- **Let's Encrypt automatic renewals** - certificates are renewed and reloaded seamlessly
+- **Corporate PKI environments** - IT departments can update certificates without service interruption
+- **Certificate rotation policies** - supports regular certificate updates as required by security policies
+
+**Features:**
+
+- Monitors server certificate, private key, and CA certificate files
+- Watches both files and their parent directories (handles atomic file replacements)
+- Debounced reloading (500ms) to handle rapid file system events
+- Detailed logging of certificate reload events (enable with `-debug`)
+- Graceful error handling - continues with existing certificates if reload fails
+
+**File System Events Handled:**
+
+- Direct file modifications
+- Atomic file replacements (common with automated tools)
+- Directory-level changes affecting certificate files
+- Symbolic link updates
+
+The certificate monitor will log successful reloads and any errors encountered during the process.
 
 ## Usage
 
@@ -201,6 +228,8 @@ To check the version and build information:
 1. **Connection Issues**: Ensure Elasticsearch is accessible and CORS is properly configured
 2. **TLS Certificate Errors**: Verify certificate paths and permissions in the configuration
 3. **Permission Denied**: Check that the specified ports are available and the user has binding permissions
+4. **Certificate Reload Failures**: Check file permissions and paths. Enable debug mode to see detailed reload logs
+5. **File Watcher Issues**: Ensure the application has read access to certificate directories
 
 ### Debug Mode
 
@@ -208,6 +237,24 @@ Enable debug logging for troubleshooting:
 
 ```bash
 ./go-elastic-board -debug -config config.yaml
+```
+
+### Certificate Reloading Verification
+
+To test certificate reloading in debug mode:
+
+```bash
+# Start the server with debug logging
+./go-elastic-board -debug -config config.yaml
+
+# In another terminal, simulate certificate renewal
+cp /path/to/new-server.crt /etc/ssl/certs/server.crt
+cp /path/to/new-server.key /etc/ssl/private/server.key
+
+# Check logs for reload confirmation:
+# [CertManager] Certificate files changed, reloading...
+# [CertManager] Certificates loaded successfully
+# [CertManager] Certificates reloaded successfully
 ```
 
 ## Screenshots

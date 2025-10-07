@@ -132,20 +132,7 @@ const dashboardHTML = `
                     </div>
                     <canvas id="nodeCountChart" width="200" height="60"></canvas>
                 </div>
-                <div class="metric-card bg-white dark:bg-gray-800 p-4 rounded-xl shadow-md">
-                    <div class="flex items-center justify-between mb-2">
-                        <p class="text-sm font-medium text-gray-500 dark:text-gray-400">Total Shards</p>
-                        <p id="shardCount" class="text-xl font-bold text-gray-900 dark:text-white">-</p>
-                    </div>
-                    <canvas id="shardCountChart" width="200" height="60"></canvas>
-                </div>
-                <div class="metric-card bg-white dark:bg-gray-800 p-4 rounded-xl shadow-md">
-                    <div class="flex items-center justify-between mb-2">
-                        <p class="text-sm font-medium text-gray-500 dark:text-gray-400">Unassigned Shards</p>
-                        <p id="unassignedShards" class="text-xl font-bold text-red-500 dark:text-red-400">-</p>
-                    </div>
-                    <canvas id="unassignedShardsChart" width="200" height="60"></canvas>
-                </div>
+
                 <div class="metric-card bg-white dark:bg-gray-800 p-4 rounded-xl shadow-md">
                     <div class="flex items-center justify-between mb-2">
                         <p class="text-sm font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Relocating Shards</p>
@@ -167,11 +154,65 @@ const dashboardHTML = `
                     </div>
                 </div>
                 <div class="metric-card bg-white dark:bg-gray-800 p-4 rounded-xl shadow-md">
-                    <div class="flex items-center justify-between mb-2">
-                        <p class="text-sm font-medium text-gray-500 dark:text-gray-400">Initializing Shards</p>
-                        <p id="initializingShards" class="text-xl font-bold text-blue-500 dark:text-blue-400">-</p>
+                    <h3 class="text-sm font-semibold mb-2 text-gray-900 dark:text-white">JVM Heap (%)</h3>
+                    <div style="height: 120px; width: 100%; overflow: hidden;">
+                        <canvas id="jvmHeapChart" width="400" height="120" style="height: 120px !important; width: 100% !important; max-height: 120px !important;"></canvas>
                     </div>
-                    <canvas id="initializingShardsChart" width="200" height="60"></canvas>
+                </div>
+                <div class="metric-card bg-white dark:bg-gray-800 p-4 rounded-xl shadow-md">
+                    <h3 class="text-sm font-semibold mb-2 text-gray-900 dark:text-white">CPU Load (1m)</h3>
+                    <div style="height: 120px; width: 100%; overflow: hidden;">
+                        <canvas id="cpuChart" width="400" height="120" style="height: 120px !important; width: 100% !important; max-height: 120px !important;"></canvas>
+                    </div>
+                </div>
+                <div class="metric-card bg-white dark:bg-gray-800 p-4 rounded-xl shadow-md">
+                    <h3 class="text-sm font-semibold mb-2 text-gray-900 dark:text-white">Filesystem (%)</h3>
+                    <div style="height: 120px; width: 100%; overflow: hidden;">
+                        <canvas id="fsChart" width="400" height="120" style="height: 120px !important; width: 100% !important; max-height: 120px !important;"></canvas>
+                    </div>
+                </div>
+
+            </div>
+
+            <!-- Shard Charts Grid - Full Width Priority -->
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-4 mb-4">
+                <div class="metric-card bg-white dark:bg-gray-800 p-4 rounded-xl shadow-md col-span-1">
+                    <h3 class="text-lg font-semibold mb-2 text-gray-900 dark:text-white">Total Shards Over Time</h3>
+                    <div class="flex items-center gap-2 mb-2">
+                        <span class="text-sm text-gray-500 dark:text-gray-400">Current:</span>
+                        <span id="shardCount" class="text-lg font-bold text-green-600 dark:text-green-400">-</span>
+                    </div>
+                    <div style="height: 200px; width: 100%; overflow: hidden;">
+                        <canvas id="shardCountChart" width="800" height="200" style="height: 200px !important; width: 100% !important; max-height: 200px !important;"></canvas>
+                    </div>
+                </div>
+                <div class="metric-card bg-white dark:bg-gray-800 p-4 rounded-xl shadow-md col-span-1">
+                    <h3 class="text-lg font-semibold mb-2 text-gray-900 dark:text-white">Unassigned Shards Over Time</h3>
+                    <div class="flex items-center gap-2 mb-2">
+                        <span class="text-sm text-gray-500 dark:text-gray-400">Current:</span>
+                        <span id="unassignedShards" class="text-lg font-bold text-red-500 dark:text-red-400">-</span>
+                    </div>
+                    <div class="bg-gray-50 dark:bg-gray-700 p-3 rounded-lg mb-2">
+                        <div class="text-xs text-gray-500 dark:text-gray-400 font-medium mb-1" title="Estimated time for all unassigned shards to be assigned based on recent progress">Recovery Estimation:</div>
+                        <div class="flex items-center gap-2">
+                            <span class="text-sm font-semibold text-gray-700 dark:text-gray-300">ETA to Zero:</span>
+                            <span id="unassignedShardsETA" class="text-sm font-bold text-orange-600 dark:text-orange-400">Calculating...</span>
+                        </div>
+                        <div id="unassignedShardsETADetails" class="text-xs text-gray-500 dark:text-gray-400 mt-1"></div>
+                    </div>
+                    <div style="height: 200px; width: 100%; overflow: hidden;">
+                        <canvas id="unassignedShardsChart" width="800" height="200" style="height: 200px !important; width: 100% !important; max-height: 200px !important;"></canvas>
+                    </div>
+                </div>
+                <div class="metric-card bg-white dark:bg-gray-800 p-4 rounded-xl shadow-md col-span-1">
+                    <h3 class="text-lg font-semibold mb-2 text-gray-900 dark:text-white">Initializing Shards Over Time</h3>
+                    <div class="flex items-center gap-2 mb-2">
+                        <span class="text-sm text-gray-500 dark:text-gray-400">Current:</span>
+                        <span id="initializingShards" class="text-lg font-bold text-amber-500 dark:text-amber-400">-</span>
+                    </div>
+                    <div style="height: 200px; width: 100%; overflow: hidden;">
+                        <canvas id="initializingShardsChart" width="800" height="200" style="height: 200px !important; width: 100% !important; max-height: 200px !important;"></canvas>
+                    </div>
                     <div class="mt-3 pt-3 border-t border-gray-200 dark:border-gray-600">
                         <div class="space-y-1">
                             <div class="text-xs text-gray-500 dark:text-gray-400 font-medium" title="cluster.routing.allocation.node_initial_primaries_recoveries">
@@ -184,28 +225,6 @@ const dashboardHTML = `
                                 <button onclick="updateInitialPrimariesSetting()" class="text-xs px-2 py-0.5 bg-blue-500 hover:bg-blue-600 text-white rounded transition-colors" title="Update setting">🔄</button>
                             </div>
                         </div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Charts Grid -->
-            <div class="grid grid-cols-1 lg:grid-cols-3 gap-4 mb-4">
-                <div class="metric-card bg-white dark:bg-gray-800 p-4 rounded-xl shadow-md col-span-1">
-                    <h3 class="text-lg font-semibold mb-2 text-gray-900 dark:text-white">JVM Heap Usage Over Time (%)</h3>
-                    <div style="height: 200px; width: 100%; overflow: hidden;">
-                        <canvas id="jvmHeapChart" width="800" height="200" style="height: 200px !important; width: 100% !important; max-height: 200px !important;"></canvas>
-                    </div>
-                </div>
-                <div class="metric-card bg-white dark:bg-gray-800 p-4 rounded-xl shadow-md col-span-1">
-                    <h3 class="text-lg font-semibold mb-2 text-gray-900 dark:text-white">CPU Load Over Time (1m Avg)</h3>
-                    <div style="height: 200px; width: 100%; overflow: hidden;">
-                        <canvas id="cpuChart" width="800" height="200" style="height: 200px !important; width: 100% !important; max-height: 200px !important;"></canvas>
-                    </div>
-                </div>
-                <div class="metric-card bg-white dark:bg-gray-800 p-4 rounded-xl shadow-md col-span-1">
-                    <h3 class="text-lg font-semibold mb-2 text-gray-900 dark:text-white">Filesystem Usage Over Time (%)</h3>
-                    <div style="height: 200px; width: 100%; overflow: hidden;">
-                        <canvas id="fsChart" width="800" height="200" style="height: 200px !important; width: 100% !important; max-height: 200px !important;"></canvas>
                     </div>
                 </div>
             </div>
@@ -231,6 +250,9 @@ const dashboardHTML = `
                                     <th scope="col" class="px-1 py-2 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">OS</th>
                                     <th scope="col" class="px-1 py-2 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider" style="font-size: 10px;">Primary</th>
                                     <th scope="col" class="px-1 py-2 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider" style="font-size: 10px;">Replica</th>
+                                    <th scope="col" class="px-1 py-2 text-left text-xs font-medium text-orange-500 dark:text-orange-300 uppercase tracking-wider" style="font-size: 9px;" title="Shards moving out from this node">↑Out</th>
+                                    <th scope="col" class="px-1 py-2 text-left text-xs font-medium text-blue-500 dark:text-blue-300 uppercase tracking-wider" style="font-size: 9px;" title="Shards moving into this node">↓In</th>
+                                    <th scope="col" class="px-1 py-2 text-left text-xs font-medium text-amber-500 dark:text-amber-300 uppercase tracking-wider" style="font-size: 9px;" title="Shards initializing on this node">↔Init</th>
                                 </tr>
                             </thead>
                             <tbody id="nodeList1" class="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
@@ -257,6 +279,9 @@ const dashboardHTML = `
                                     <th scope="col" class="px-1 py-2 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">OS</th>
                                     <th scope="col" class="px-1 py-2 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider" style="font-size: 10px;">Primary</th>
                                     <th scope="col" class="px-1 py-2 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider" style="font-size: 10px;">Replica</th>
+                                    <th scope="col" class="px-1 py-2 text-left text-xs font-medium text-orange-500 dark:text-orange-300 uppercase tracking-wider" style="font-size: 9px;" title="Shards moving out from this node">↑Out</th>
+                                    <th scope="col" class="px-1 py-2 text-left text-xs font-medium text-blue-500 dark:text-blue-300 uppercase tracking-wider" style="font-size: 9px;" title="Shards moving into this node">↓In</th>
+                                    <th scope="col" class="px-1 py-2 text-left text-xs font-medium text-amber-500 dark:text-amber-300 uppercase tracking-wider" style="font-size: 9px;" title="Shards initializing on this node">↔Init</th>
                                 </tr>
                             </thead>
                             <tbody id="nodeList2" class="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
@@ -340,7 +365,7 @@ const dashboardHTML = `
     <script>
         // --- Debug Function for Canvas Monitoring ---
         function monitorCanvasChanges() {
-            const mainCharts = ['jvmHeapChart', 'cpuChart', 'fsChart'];
+            const mainCharts = ['jvmHeapChart', 'cpuChart', 'fsChart', 'shardCountChart', 'unassignedShardsChart', 'initializingShardsChart'];
             mainCharts.forEach(chartId => {
                 const canvas = document.getElementById(chartId);
                 if (canvas) {
@@ -477,13 +502,191 @@ const dashboardHTML = `
         
         // Small cluster metric charts data
         let nodeCountData = { labels: [], datasets: [{ data: [], borderColor: 'rgba(34, 197, 94, 1)', backgroundColor: 'rgba(34, 197, 94, 0.1)', fill: true, tension: 0.4 }] };
-        let shardCountData = { labels: [], datasets: [{ data: [], borderColor: 'rgba(59, 130, 246, 1)', backgroundColor: 'rgba(59, 130, 246, 0.1)', fill: true, tension: 0.4 }] };
+        let shardCountData = { labels: [], datasets: [{ data: [], borderColor: 'rgba(34, 197, 94, 1)', backgroundColor: 'rgba(34, 197, 94, 0.1)', fill: true, tension: 0.4 }] };
         let unassignedShardsData = { labels: [], datasets: [{ data: [], borderColor: 'rgba(239, 68, 68, 1)', backgroundColor: 'rgba(239, 68, 68, 0.1)', fill: true, tension: 0.4 }] };
         let relocatingShardsData = { labels: [], datasets: [{ data: [], borderColor: 'rgba(249, 115, 22, 1)', backgroundColor: 'rgba(249, 115, 22, 0.1)', fill: true, tension: 0.4 }] };
-        let initializingShardsData = { labels: [], datasets: [{ data: [], borderColor: 'rgba(59, 130, 246, 1)', backgroundColor: 'rgba(59, 130, 246, 0.1)', fill: true, tension: 0.4 }] };
+        let initializingShardsData = { labels: [], datasets: [{ data: [], borderColor: 'rgba(245, 158, 11, 1)', backgroundColor: 'rgba(245, 158, 11, 0.1)', fill: true, tension: 0.4 }] };
         
         // Per-node chart data storage
         let nodeChartsData = {};
+        
+        // ETA calculation data storage
+        let etaHistory = {
+            unassigned: [],
+            timestamps: []
+        };
+        
+        // ETA calculation parameters
+        const ETA_HISTORY_POINTS = 10; // Points to use for trend calculation
+        const ETA_MIN_POINTS = 3;     // Minimum points needed for ETA calculation
+        
+        /**
+         * Calculate ETA based on historical data trends
+         * @param {Array} values - Historical values array
+         * @param {Array} timestamps - Corresponding timestamps
+         * @param {number} currentValue - Current value
+         * @return {Object} - Object with eta and details properties
+         */
+        function calculateETA(values, timestamps, currentValue) {
+            if (values.length < ETA_MIN_POINTS || currentValue === 0) {
+                return {
+                    eta: currentValue === 0 ? "Complete ✓" : "Calculating...",
+                    details: currentValue === 0 ? "All shards assigned" : "Gathering data points (" + values.length + "/" + ETA_MIN_POINTS + ")"
+                };
+            }
+            
+            // Use last ETA_HISTORY_POINTS for trend calculation
+            const usePoints = Math.min(values.length, ETA_HISTORY_POINTS);
+            const recentValues = values.slice(-usePoints);
+            const recentTimes = timestamps.slice(-usePoints);
+            
+            if (recentValues.length < 2) {
+                return {
+                    eta: "Calculating...",
+                    details: "Insufficient data points"
+                };
+            }
+            
+            // Calculate the rate of change (shards per second)
+            let totalChange = 0;
+            let totalTime = 0;
+            
+            for (let i = 1; i < recentValues.length; i++) {
+                const valueChange = recentValues[i-1] - recentValues[i]; // Positive if decreasing
+                const timeChange = (recentTimes[i] - recentTimes[i-1]) / 1000; // Convert to seconds
+                
+                if (timeChange > 0) {
+                    totalChange += valueChange;
+                    totalTime += timeChange;
+                }
+            }
+            
+            if (totalTime === 0 || totalChange <= 0) {
+                // Calculate the time interval with no progress
+                const intervalMinutes = Math.round(totalTime / 60) || Math.round((recentTimes[recentTimes.length - 1] - recentTimes[0]) / 60000);
+                return {
+                    eta: "No progress detected",
+                    details: "No reduction in last " + Math.max(intervalMinutes, 1) + " minute(s)"
+                };
+            }
+            
+            const rate = totalChange / totalTime; // Shards per second
+            const secondsToCompletion = currentValue / rate;
+            
+            if (secondsToCompletion <= 0 || !isFinite(secondsToCompletion)) {
+                return {
+                    eta: "No progress detected",
+                    details: "Rate calculation error"
+                };
+            }
+            
+            // Format rate information
+            const shardsPerMinute = (rate * 60).toFixed(1);
+            const rateDetails = "Rate: " + shardsPerMinute + " shards/min";
+            
+            // Convert to human-readable format
+            let etaString;
+            if (secondsToCompletion < 60) {
+                etaString = "~" + Math.ceil(secondsToCompletion) + "s";
+            } else if (secondsToCompletion < 3600) {
+                const minutes = Math.ceil(secondsToCompletion / 60);
+                etaString = "~" + minutes + "m";
+            } else if (secondsToCompletion < 86400) {
+                const hours = Math.floor(secondsToCompletion / 3600);
+                const minutes = Math.ceil((secondsToCompletion % 3600) / 60);
+                etaString = "~" + hours + "h " + minutes + "m";
+            } else {
+                const days = Math.floor(secondsToCompletion / 86400);
+                const hours = Math.floor((secondsToCompletion % 86400) / 3600);
+                etaString = "~" + days + "d " + hours + "h";
+            }
+            
+            return {
+                eta: etaString,
+                details: rateDetails
+            };
+        }
+        
+        /**
+         * Fetch shard movement data from /_cat/shards endpoint
+         */
+        async function fetchShardMovementData() {
+            try {
+                const response = await fetch('/proxy', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ 
+                        path: '/_cat/shards?format=json'
+                    })
+                });
+                
+                if (!response.ok) {
+                    throw new Error('Failed to fetch shard movement data');
+                }
+                
+                const shards = await response.json();
+                const movementCounts = {};
+                
+                // Debug: log samples of different shard states
+                const relocatingShards = shards.filter(s => s.state === 'RELOCATING').slice(0, 2);
+                const initializingShards = shards.filter(s => s.state === 'INITIALIZING').slice(0, 2);
+                console.log('RELOCATING shards sample:', relocatingShards);
+                console.log('INITIALIZING shards sample:', initializingShards);
+                
+                shards.forEach(shard => {
+                    const nodeField = shard.node;
+                    const state = shard.state;
+                    
+                    if (!nodeField) return; // Skip if no node field found
+                    
+                    // Handle INITIALIZING shards (normal node field)
+                    if (state === 'INITIALIZING') {
+                        const nodeName = nodeField;
+                        if (!movementCounts[nodeName]) {
+                            movementCounts[nodeName] = { outgoing: 0, incoming: 0, initializing: 0 };
+                        }
+                        movementCounts[nodeName].initializing++;
+                    }
+                    
+                    // Handle RELOCATING shards (node field contains "source -> destination" format)
+                    else if (state === 'RELOCATING') {
+                        // Parse the format: "esearch-itohi-live-nbz03 -> 10.77.250.20 D5-VR_DARziNg-rxwYJISg esearch-itohi-live-nbz05"
+                        const arrowIndex = nodeField.indexOf(' -> ');
+                        if (arrowIndex !== -1) {
+                            const sourceNodeName = nodeField.substring(0, arrowIndex);
+                            const destPart = nodeField.substring(arrowIndex + 4); // Skip " -> "
+                            
+                            // Extract destination node name (last part after spaces)
+                            const destParts = destPart.trim().split(' ');
+                            const destNodeName = destParts[destParts.length - 1];
+                            
+                            // Count outgoing shard on source node
+                            if (!movementCounts[sourceNodeName]) {
+                                movementCounts[sourceNodeName] = { outgoing: 0, incoming: 0, initializing: 0 };
+                            }
+                            movementCounts[sourceNodeName].outgoing++;
+                            
+                            // Count incoming shard on destination node
+                            if (destNodeName && destNodeName !== sourceNodeName) {
+                                if (!movementCounts[destNodeName]) {
+                                    movementCounts[destNodeName] = { outgoing: 0, incoming: 0, initializing: 0 };
+                                }
+                                movementCounts[destNodeName].incoming++;
+                            }
+                        }
+                    }
+                    
+                    // Handle normal STARTED/other shards (ignore for movement counting)
+                });
+                
+                console.log('Final movement counts:', movementCounts);
+                return movementCounts;
+                
+            } catch (error) {
+                console.error('Error fetching shard movement data:', error);
+                return {};
+            }
+        }
         
         const MAX_HISTORY_POINTS = 30; // Number of data points to show in the history chart
 
@@ -530,7 +733,7 @@ const dashboardHTML = `
             resizeTimeout = setTimeout(() => {
                 // Re-fetch current data to trigger table refresh
                 if (lastNodeData) {
-                    updateData();
+                    updateNodeList(lastNodeData.data, lastNodeData.shardsData, lastNodeData.nodeStatsData, lastNodeData.nodeInfoData, lastNodeData.shardMovement);
                 }
             }, 250);
         });
@@ -579,12 +782,13 @@ const dashboardHTML = `
                     body: JSON.stringify({ path })
                 });
                 
-                const [health, nodeStats, nodeInfo, catNodes, catShards] = await Promise.all([
+                const [health, nodeStats, nodeInfo, catNodes, catShards, shardMovement] = await Promise.all([
                     proxyFetch('/_cluster/health'),
                     proxyFetch('/_nodes/stats/jvm,fs,os,process'),
                     proxyFetch('/_nodes'),
                     proxyFetch('/_cat/nodes?format=json&h=name,heap.percent,ram.percent,cpu,load_1m,node.role,master,version,os'),
-                    proxyFetch('/_cat/shards?format=json&h=index,shard,prirep,state,node')
+                    proxyFetch('/_cat/shards?format=json&h=index,shard,prirep,state,node'),
+                    fetchShardMovementData()
                 ]);
 
                 if (!health.ok || !nodeStats.ok || !nodeInfo.ok || !catNodes.ok || !catShards.ok) {
@@ -596,6 +800,7 @@ const dashboardHTML = `
                 const nodeInfoData = await nodeInfo.json();
                 const catNodesData = await catNodes.json();
                 const catShardsData = await catShards.json();
+                // shardMovement is already parsed from fetchShardMovementData()
                 
                 // If successful, show dashboard and update status
                 dashboardContentEl.classList.remove('hidden');
@@ -603,7 +808,7 @@ const dashboardHTML = `
 
                 // Update UI with new data
                 updateClusterHealth(healthData);
-                updateNodeList(catNodesData, catShardsData, nodeStatsData, nodeInfoData);
+                updateNodeList(catNodesData, catShardsData, nodeStatsData, nodeInfoData, shardMovement);
                 updateAggregateCharts(nodeStatsData);
                 updateSmallCharts(healthData);
                 
@@ -1252,12 +1457,12 @@ const dashboardHTML = `
             return colors[Math.abs(hash) % colors.length];
         }
 
-        function updateNodeList(data, shardsData, nodeStatsData, nodeInfoData) {
+        function updateNodeList(data, shardsData, nodeStatsData, nodeInfoData, shardMovement) {
             const tbody1 = document.getElementById('nodeList1');
             const tbody2 = document.getElementById('nodeList2');
             
-            // Store data for resize handling
-            lastNodeData = { data, shardsData, nodeStatsData, nodeInfoData };
+            // Store data for resize handling including shardMovement
+            lastNodeData = { data, shardsData, nodeStatsData, nodeInfoData, shardMovement };
             
             // Create a map of node name to filesystem data
             const fsData = {};
@@ -1413,18 +1618,18 @@ const dashboardHTML = `
                 
                 // Rebuild both tables
                 if (data1.length > 0) {
-                    this.buildNodeTable(data1, shardCounts, tbody1, fsData, uptimeData);
+                    buildNodeTable(data1, shardCounts, tbody1, fsData, uptimeData, shardMovement);
                 }
                 if (data2.length > 0) {
-                    this.buildNodeTable(data2, shardCounts, tbody2, fsData, uptimeData);
+                    buildNodeTable(data2, shardCounts, tbody2, fsData, uptimeData, shardMovement);
                 }
             } else {
                 // Just update existing rows
                 if (data1.length > 0) {
-                    this.updateExistingNodeRows(data1, shardCounts, tbody1, fsData, uptimeData);
+                    updateExistingNodeRows(data1, shardCounts, tbody1, fsData, uptimeData, shardMovement);
                 }
                 if (data2.length > 0) {
-                    this.updateExistingNodeRows(data2, shardCounts, tbody2, fsData, uptimeData);
+                    updateExistingNodeRows(data2, shardCounts, tbody2, fsData, uptimeData, shardMovement);
                 }
             }
         }
@@ -1505,10 +1710,11 @@ const dashboardHTML = `
             return { text, color };
         }
 
-        function buildNodeTable(data, shardCounts, tbody, fsData, uptimeData) {
+        function buildNodeTable(data, shardCounts, tbody, fsData, uptimeData, shardMovement) {
             data.forEach((node, index) => {
                 const isMaster = node.master === '*';
                 const nodeShards = shardCounts[node.name] || { primary: 0, replica: 0 };
+                const nodeMovement = shardMovement[node.name] || { outgoing: 0, incoming: 0, initializing: 0 };
                 const nodeName = node.name;
                 
                 // Initialize individual metric chart data if not exists
@@ -1549,7 +1755,7 @@ const dashboardHTML = `
                     }
                 });
                 
-                this.addCurrentDataToCharts(node, nodeName);
+                addCurrentDataToCharts(node, nodeName);
                 
                 const cpuChartId = 'cpuChart_' + nodeName;
                 const heapChartId = 'heapChart_' + nodeName;
@@ -1612,6 +1818,9 @@ const dashboardHTML = `
                         '</td>' +
                         '<td class="px-1 py-2 whitespace-nowrap text-sm text-gray-500 dark:text-gray-300" style="font-size: 11px;">' + nodeShards.primary + '</td>' +
                         '<td class="px-1 py-2 whitespace-nowrap text-sm text-gray-500 dark:text-gray-300" style="font-size: 11px;">' + nodeShards.replica + '</td>' +
+                        '<td class="px-1 py-2 whitespace-nowrap text-sm text-orange-500 dark:text-orange-400" style="font-size: 10px; font-weight: bold;">' + (nodeMovement.outgoing || 0) + '</td>' +
+                        '<td class="px-1 py-2 whitespace-nowrap text-sm text-blue-500 dark:text-blue-400" style="font-size: 10px; font-weight: bold;">' + (nodeMovement.incoming || 0) + '</td>' +
+                        '<td class="px-1 py-2 whitespace-nowrap text-sm text-amber-500 dark:text-amber-400" style="font-size: 10px; font-weight: bold;">' + (nodeMovement.initializing || 0) + '</td>' +
                     '</tr>';
                 tbody.insertAdjacentHTML('beforeend', row);
                 
@@ -1632,11 +1841,12 @@ const dashboardHTML = `
             });
         }
 
-        function updateExistingNodeRows(data, shardCounts, tbody, fsData, uptimeData) {
+        function updateExistingNodeRows(data, shardCounts, tbody, fsData, uptimeData, shardMovement) {
             data.forEach((node, index) => {
                 const isMaster = node.master === '*';
                 const nodeShards = shardCounts[node.name] || { primary: 0, replica: 0 };
                 const nodeName = node.name;
+                const nodeMovement = shardMovement[nodeName] || { outgoing: 0, incoming: 0, initializing: 0 };
                 
                 // Find the row for this node
                 const row = tbody.querySelector('tr[data-node="' + nodeName + '"]');
@@ -1648,7 +1858,7 @@ const dashboardHTML = `
                 const nodeUptime = formatUptime(uptimeData[nodeName]);
                 const nodeGroupInfo = getNodeGroupInfo(nodeName);
                 const cells = row.querySelectorAll('td');
-                if (cells.length >= 12) {
+                if (cells.length >= 15) {
                     // Update the node name cell with group styling
                     cells[0].style.backgroundColor = nodeGroupInfo.bgColor;
                     cells[0].style.borderLeft = '4px solid ' + nodeGroupInfo.color;
@@ -1676,10 +1886,14 @@ const dashboardHTML = `
                     cells[9].innerHTML = '<span style="background-color: ' + osColor.bg + '; color: ' + osColor.text + '; padding: 1px 4px; border-radius: 3px; font-family: monospace; font-size: 10px; font-weight: bold;">' + (node.os || '-') + '</span>';
                     cells[10].innerHTML = '<span style="font-size: 11px;">' + nodeShards.primary + '</span>';
                     cells[11].innerHTML = '<span style="font-size: 11px;">' + nodeShards.replica + '</span>';
+                    // Update shard movement columns
+                    cells[12].innerHTML = '<span style="font-size: 11px; color: #f97316; font-weight: bold;">' + nodeMovement.outgoing + '</span>';
+                    cells[13].innerHTML = '<span style="font-size: 11px; color: #3b82f6; font-weight: bold;">' + nodeMovement.incoming + '</span>';
+                    cells[14].innerHTML = '<span style="font-size: 11px; color: #f59e0b; font-weight: bold;">' + nodeMovement.initializing + '</span>';
                 }
                 
                 // Add new data to charts and update them
-                this.addCurrentDataToCharts(node, nodeName);
+                addCurrentDataToCharts(node, nodeName);
                 
                 const cpuValue = parseFloat(node.cpu) || 0;
                 const heapValue = parseFloat(node['heap.percent']) || 0;
@@ -1881,22 +2095,10 @@ const dashboardHTML = `
             updateSmallLineChart('nodeCountChart', nodeCountData);
             
             // Update shard count chart
-            shardCountData.labels.push(now);
-            shardCountData.datasets[0].data.push(healthData.active_shards);
-            if (shardCountData.labels.length > MAX_HISTORY_POINTS) {
-                shardCountData.labels.shift();
-                shardCountData.datasets[0].data.shift();
-            }
-            updateSmallLineChart('shardCountChart', shardCountData);
+            updateLineChart('shardCountChart', shardCountData, healthData.active_shards);
             
             // Update unassigned shards chart
-            unassignedShardsData.labels.push(now);
-            unassignedShardsData.datasets[0].data.push(healthData.unassigned_shards);
-            if (unassignedShardsData.labels.length > MAX_HISTORY_POINTS) {
-                unassignedShardsData.labels.shift();
-                unassignedShardsData.datasets[0].data.shift();
-            }
-            updateSmallLineChart('unassignedShardsChart', unassignedShardsData);
+            updateLineChart('unassignedShardsChart', unassignedShardsData, healthData.unassigned_shards);
             
             // Update relocating shards chart
             relocatingShardsData.labels.push(now);
@@ -1908,13 +2110,39 @@ const dashboardHTML = `
             updateSmallLineChart('relocatingShardsChart', relocatingShardsData);
             
             // Update initializing shards chart
-            initializingShardsData.labels.push(now);
-            initializingShardsData.datasets[0].data.push(healthData.initializing_shards || 0);
-            if (initializingShardsData.labels.length > MAX_HISTORY_POINTS) {
-                initializingShardsData.labels.shift();
-                initializingShardsData.datasets[0].data.shift();
+            updateLineChart('initializingShardsChart', initializingShardsData, healthData.initializing_shards || 0);
+            
+            // Update ETA calculations for unassigned shards only
+            const currentTime = Date.now();
+            etaHistory.timestamps.push(currentTime);
+            etaHistory.unassigned.push(healthData.unassigned_shards);
+            
+            // Keep only recent history for ETA calculations
+            if (etaHistory.timestamps.length > ETA_HISTORY_POINTS) {
+                etaHistory.timestamps.shift();
+                etaHistory.unassigned.shift();
             }
-            updateSmallLineChart('initializingShardsChart', initializingShardsData);
+            
+            // Calculate and update ETA for unassigned shards only
+            const unassignedETAResult = calculateETA(etaHistory.unassigned, etaHistory.timestamps, healthData.unassigned_shards);
+            
+            // Update ETA display with dynamic styling
+            const unassignedETAElement = document.getElementById('unassignedShardsETA');
+            const unassignedETADetailsElement = document.getElementById('unassignedShardsETADetails');
+            
+            unassignedETAElement.textContent = unassignedETAResult.eta;
+            unassignedETADetailsElement.textContent = unassignedETAResult.details;
+            
+            // Update styling based on ETA status
+            if (healthData.unassigned_shards === 0) {
+                unassignedETAElement.className = 'text-sm font-bold text-green-600 dark:text-green-400';
+            } else if (unassignedETAResult.eta.includes('No progress')) {
+                unassignedETAElement.className = 'text-sm font-bold text-gray-500 dark:text-gray-400';
+            } else if (unassignedETAResult.eta !== 'Calculating...') {
+                unassignedETAElement.className = 'text-sm font-bold text-blue-600 dark:text-blue-400';
+            } else {
+                unassignedETAElement.className = 'text-sm font-bold text-orange-600 dark:text-orange-400';
+            }
         }
         
         /**
@@ -2012,12 +2240,21 @@ const dashboardHTML = `
                     }
                 };
                 
-                if (chartId === 'jvmHeapChart' || chartId === 'fsUsageChart') {
+                if (chartId === 'jvmHeapChart' || chartId === 'fsChart') {
                     yAxisConfig.max = 100;
                     yAxisConfig.title.text = 'Usage (%)';
-                } else if (chartId === 'cpuLoadChart') {
+                } else if (chartId === 'cpuChart') {
                     // CPU load can go above 1.0 on multi-core systems
                     yAxisConfig.title.text = 'Load Average';
+                    delete yAxisConfig.max; // Let it auto-scale
+                } else if (chartId === 'shardCountChart') {
+                    yAxisConfig.title.text = 'Total Shards';
+                    delete yAxisConfig.max; // Let it auto-scale
+                } else if (chartId === 'unassignedShardsChart') {
+                    yAxisConfig.title.text = 'Unassigned Shards';
+                    delete yAxisConfig.max; // Let it auto-scale
+                } else if (chartId === 'initializingShardsChart') {
+                    yAxisConfig.title.text = 'Initializing Shards';
                     delete yAxisConfig.max; // Let it auto-scale
                 }
                 
