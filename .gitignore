@@ -1,3 +1,4 @@
+go-elastic-board
 build/
 output.json
 test-cert-reload.sh
