@@ -2,6 +2,24 @@
 
 All notable changes to this project will be documented in this file.
 
+## [v0.0.3] - 2025-10-08
+
+### 🔧 Bug Fixes & Layout Improvements
+
+- **Fixed Table Width Issue**: Resolved horizontal scrollbar problem in split node tables
+  - Reduced column header text length (e.g., "CPU %" → "CPU", "JVM Uptime" → "Uptime")
+  - Minimized padding on table columns for better space utilization
+  - Made shard movement columns ultra-compact with arrow-only headers (↑, ↓, ↔)
+  - Reduced font sizes across table headers for more compact display
+  - Enhanced responsive design to prevent horizontal overflow
+
+### � Build & Release Improvements
+
+- **Release Automation**: Added build and release configuration
+- **Documentation**: Updated project documentation and screenshots
+
+---
+
 ## [v0.0.2] - 2025-10-07
 
 ### 🔒 Security & Operations
@@ -14,6 +32,7 @@ All notable changes to this project will be documented in this file.
 ### 📊 Enhanced Monitoring - Shard Movement Tracking
 
 - **New Node Table Columns**: Added three new columns to track Elasticsearch shard movements:
+
   - **↑Out** (Orange): Shards relocating out from the node
   - **↓In** (Blue): Shards relocating into the node
   - **↔Init** (Amber): Shards initializing on the node
@@ -28,6 +47,7 @@ All notable changes to this project will be documented in this file.
 - **Intuitive Column Headers**: Added arrow icons (↑↓↔) for immediate visual understanding of shard movement directions
 
 - **Enhanced Chart Layout**: Reorganized dashboard charts for better space utilization:
+
   - Prioritized shard-related charts (Total, Unassigned, Initializing, Relocating)
   - Compacted system metrics charts (JVM, CPU, FS) on same row
   - Added ETA calculations for shard recovery operations
