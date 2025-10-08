@@ -238,21 +238,21 @@ const dashboardHTML = `
                         <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
                             <thead class="bg-gray-50 dark:bg-gray-700">
                                 <tr>
-                                    <th scope="col" class="px-3 py-2 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Name</th>
-                                    <th scope="col" class="px-1 py-2 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider" style="font-size: 10px;">Role</th>
-                                    <th scope="col" class="px-2 py-2 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">CPU %</th>
-                                    <th scope="col" class="px-2 py-2 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Heap %</th>
-                                    <th scope="col" class="px-2 py-2 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">RAM %</th>
-                                    <th scope="col" class="px-2 py-2 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Load (1m)</th>
-                                    <th scope="col" class="px-2 py-2 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">FS %</th>
-                                    <th scope="col" class="px-2 py-2 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">JVM Uptime</th>
-                                    <th scope="col" class="px-2 py-2 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Version</th>
-                                    <th scope="col" class="px-1 py-2 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">OS</th>
-                                    <th scope="col" class="px-1 py-2 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider" style="font-size: 10px;">Primary</th>
-                                    <th scope="col" class="px-1 py-2 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider" style="font-size: 10px;">Replica</th>
-                                    <th scope="col" class="px-1 py-2 text-left text-xs font-medium text-orange-500 dark:text-orange-300 uppercase tracking-wider" style="font-size: 9px;" title="Shards moving out from this node">↑Out</th>
-                                    <th scope="col" class="px-1 py-2 text-left text-xs font-medium text-blue-500 dark:text-blue-300 uppercase tracking-wider" style="font-size: 9px;" title="Shards moving into this node">↓In</th>
-                                    <th scope="col" class="px-1 py-2 text-left text-xs font-medium text-amber-500 dark:text-amber-300 uppercase tracking-wider" style="font-size: 9px;" title="Shards initializing on this node">↔Init</th>
+                                    <th scope="col" class="px-2 py-2 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider" style="font-size: 10px;">Name</th>
+                                    <th scope="col" class="px-1 py-2 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider" style="font-size: 9px;">Role</th>
+                                    <th scope="col" class="px-1 py-2 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider" style="font-size: 9px;">CPU</th>
+                                    <th scope="col" class="px-1 py-2 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider" style="font-size: 9px;">Heap</th>
+                                    <th scope="col" class="px-1 py-2 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider" style="font-size: 9px;">RAM</th>
+                                    <th scope="col" class="px-1 py-2 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider" style="font-size: 9px;">Load</th>
+                                    <th scope="col" class="px-1 py-2 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider" style="font-size: 9px;">FS</th>
+                                    <th scope="col" class="px-1 py-2 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider" style="font-size: 9px;">Uptime</th>
+                                    <th scope="col" class="px-1 py-2 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider" style="font-size: 9px;">Ver</th>
+                                    <th scope="col" class="px-1 py-2 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider" style="font-size: 9px;">OS</th>
+                                    <th scope="col" class="px-1 py-2 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider" style="font-size: 9px;">Pri</th>
+                                    <th scope="col" class="px-1 py-2 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider" style="font-size: 9px;">Rep</th>
+                                    <th scope="col" class="px-0.5 py-2 text-center text-xs font-medium text-orange-500 dark:text-orange-300 uppercase tracking-wider" style="font-size: 8px; width: 20px;" title="Shards moving out from this node">↑</th>
+                                    <th scope="col" class="px-0.5 py-2 text-center text-xs font-medium text-blue-500 dark:text-blue-300 uppercase tracking-wider" style="font-size: 8px; width: 20px;" title="Shards moving into this node">↓</th>
+                                    <th scope="col" class="px-0.5 py-2 text-center text-xs font-medium text-amber-500 dark:text-amber-300 uppercase tracking-wider" style="font-size: 8px; width: 20px;" title="Shards initializing on this node">↔</th>
                                 </tr>
                             </thead>
                             <tbody id="nodeList1" class="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
@@ -267,21 +267,21 @@ const dashboardHTML = `
                         <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
                             <thead class="bg-gray-50 dark:bg-gray-700">
                                 <tr>
-                                    <th scope="col" class="px-3 py-2 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Name</th>
-                                    <th scope="col" class="px-1 py-2 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider" style="font-size: 10px;">Role</th>
-                                    <th scope="col" class="px-2 py-2 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">CPU %</th>
-                                    <th scope="col" class="px-2 py-2 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Heap %</th>
-                                    <th scope="col" class="px-2 py-2 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">RAM %</th>
-                                    <th scope="col" class="px-2 py-2 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Load (1m)</th>
-                                    <th scope="col" class="px-2 py-2 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">FS %</th>
-                                    <th scope="col" class="px-2 py-2 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">JVM Uptime</th>
-                                    <th scope="col" class="px-2 py-2 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Version</th>
-                                    <th scope="col" class="px-1 py-2 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">OS</th>
-                                    <th scope="col" class="px-1 py-2 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider" style="font-size: 10px;">Primary</th>
-                                    <th scope="col" class="px-1 py-2 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider" style="font-size: 10px;">Replica</th>
-                                    <th scope="col" class="px-1 py-2 text-left text-xs font-medium text-orange-500 dark:text-orange-300 uppercase tracking-wider" style="font-size: 9px;" title="Shards moving out from this node">↑Out</th>
-                                    <th scope="col" class="px-1 py-2 text-left text-xs font-medium text-blue-500 dark:text-blue-300 uppercase tracking-wider" style="font-size: 9px;" title="Shards moving into this node">↓In</th>
-                                    <th scope="col" class="px-1 py-2 text-left text-xs font-medium text-amber-500 dark:text-amber-300 uppercase tracking-wider" style="font-size: 9px;" title="Shards initializing on this node">↔Init</th>
+                                    <th scope="col" class="px-2 py-2 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider" style="font-size: 10px;">Name</th>
+                                    <th scope="col" class="px-1 py-2 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider" style="font-size: 9px;">Role</th>
+                                    <th scope="col" class="px-1 py-2 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider" style="font-size: 9px;">CPU</th>
+                                    <th scope="col" class="px-1 py-2 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider" style="font-size: 9px;">Heap</th>
+                                    <th scope="col" class="px-1 py-2 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider" style="font-size: 9px;">RAM</th>
+                                    <th scope="col" class="px-1 py-2 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider" style="font-size: 9px;">Load</th>
+                                    <th scope="col" class="px-1 py-2 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider" style="font-size: 9px;">FS</th>
+                                    <th scope="col" class="px-1 py-2 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider" style="font-size: 9px;">Uptime</th>
+                                    <th scope="col" class="px-1 py-2 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider" style="font-size: 9px;">Ver</th>
+                                    <th scope="col" class="px-1 py-2 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider" style="font-size: 9px;">OS</th>
+                                    <th scope="col" class="px-1 py-2 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider" style="font-size: 9px;">Pri</th>
+                                    <th scope="col" class="px-1 py-2 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider" style="font-size: 9px;">Rep</th>
+                                    <th scope="col" class="px-0.5 py-2 text-center text-xs font-medium text-orange-500 dark:text-orange-300 uppercase tracking-wider" style="font-size: 8px; width: 20px;" title="Shards moving out from this node">↑</th>
+                                    <th scope="col" class="px-0.5 py-2 text-center text-xs font-medium text-blue-500 dark:text-blue-300 uppercase tracking-wider" style="font-size: 8px; width: 20px;" title="Shards moving into this node">↓</th>
+                                    <th scope="col" class="px-0.5 py-2 text-center text-xs font-medium text-amber-500 dark:text-amber-300 uppercase tracking-wider" style="font-size: 8px; width: 20px;" title="Shards initializing on this node">↔</th>
                                 </tr>
                             </thead>
                             <tbody id="nodeList2" class="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
