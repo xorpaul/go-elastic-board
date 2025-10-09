@@ -47,6 +47,12 @@ type ServerConfig struct {
 type Config struct {
 	Server ServerConfig `yaml:"server"`
 	TLS    TLSConfig    `yaml:"tls"`
+
+	// Elasticsearch connection settings
+	Elasticsearch struct {
+		// Base URL to the Elasticsearch HTTP endpoint, e.g. http://localhost:9200
+		URL string `yaml:"url"`
+	} `yaml:"elasticsearch"`
 }
 
 // CertificateManager handles automatic reloading of TLS certificates
@@ -242,6 +248,11 @@ func loadConfig(configFile string) error {
 			TLS: TLSConfig{
 				Enabled: false,
 			},
+			Elasticsearch: struct {
+				URL string `yaml:"url"`
+			}{
+				URL: "http://localhost:9200",
+			},
 		}
 		return nil
 	}
@@ -254,6 +265,11 @@ func loadConfig(configFile string) error {
 		},
 		TLS: TLSConfig{
 			Enabled: true,
+		},
+		Elasticsearch: struct {
+			URL string `yaml:"url"`
+		}{
+			URL: "http://localhost:9200",
 		},
 	}
 
@@ -268,8 +284,8 @@ func loadConfig(configFile string) error {
 	}
 
 	if debug {
-		log.Printf("Loaded config: Server address=%s, port=%s, TLS enabled=%v, CA file=%s, allowed CNs=%v",
-			config.Server.Address, config.Server.Port, config.TLS.Enabled, config.TLS.CAFile, config.TLS.AllowedCNs)
+		log.Printf("Loaded config: Server address=%s, port=%s, TLS enabled=%v, CA file=%s, allowed CNs=%v, ES URL=%s",
+			config.Server.Address, config.Server.Port, config.TLS.Enabled, config.TLS.CAFile, config.TLS.AllowedCNs, config.Elasticsearch.URL)
 	}
 
 	return nil
@@ -374,6 +390,7 @@ func main() {
 	}
 	fmt.Printf("go-elastic-board server version %s with build time %s starting on %s://%s\n", buildversion, buildtime, protocol, listenAddr)
 	fmt.Println("All static assets are embedded. You can now run this binary by itself.")
+        fmt.Printf("Elasticsearch endpoint: %s\n", config.Elasticsearch.URL)
 
 	if config.TLS.Enabled {
 		fmt.Printf("TLS client certificate authentication enabled with CA: %s\n", config.TLS.CAFile)
@@ -488,7 +505,7 @@ func proxyHandler(w http.ResponseWriter, r *http.Request) {
 		method = http.MethodGet
 	}
 
-	esURL := "http://localhost:9200" + reqBody.Path
+        esURL := strings.TrimSuffix(config.Elasticsearch.URL, "/") + reqBody.Path
 
 	var esReq *http.Request
 	var err error
