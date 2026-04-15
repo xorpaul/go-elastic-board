@@ -2,6 +2,18 @@
 
 All notable changes to this project will be documented in this file.
 
+## [v0.0.4] - 2026-04-15
+
+### 🎨 UI Improvements
+
+- **Node Group Colors**: Added distinct colors for new datacenter VM types (`wtr`, `lgr`) so they no longer display with the default gray background
+
+### 🔧 Maintenance
+
+- Updated vendor dependencies
+
+---
+
 ## [v0.0.3] - 2025-10-08
 
 ### 🔧 Bug Fixes & Layout Improvements
