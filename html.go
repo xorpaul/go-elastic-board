@@ -230,6 +230,15 @@ const dashboardHTML = `
             </div>
             
             
+            <!-- Allocation Exclude IPs -->
+            <div id="excludeIpsSection" class="bg-white dark:bg-gray-800 p-4 rounded-xl shadow-md mb-4">
+                <div class="flex items-center justify-between mb-2">
+                    <h3 class="text-lg font-semibold text-gray-900 dark:text-white">Allocation Exclude IPs</h3>
+                    <span class="text-xs text-gray-500 dark:text-gray-400 font-mono">cluster.routing.allocation.exclude._ip</span>
+                </div>
+                <div id="excludeIpsList" class="text-sm text-gray-500 dark:text-gray-400">Loading...</div>
+            </div>
+
             <!-- Node List - Split into two columns -->
             <div class="node-table-container grid grid-cols-1 lg:grid-cols-2 gap-4">
                 <div class="bg-white dark:bg-gray-800 p-4 rounded-xl shadow-md">
@@ -253,6 +262,7 @@ const dashboardHTML = `
                                     <th scope="col" class="px-0.5 py-2 text-center text-xs font-medium text-orange-500 dark:text-orange-300 uppercase tracking-wider" style="font-size: 8px; width: 20px;" title="Shards moving out from this node">↑</th>
                                     <th scope="col" class="px-0.5 py-2 text-center text-xs font-medium text-blue-500 dark:text-blue-300 uppercase tracking-wider" style="font-size: 8px; width: 20px;" title="Shards moving into this node">↓</th>
                                     <th scope="col" class="px-0.5 py-2 text-center text-xs font-medium text-amber-500 dark:text-amber-300 uppercase tracking-wider" style="font-size: 8px; width: 20px;" title="Shards initializing on this node">↔</th>
+                                    <th scope="col" class="px-1 py-2 text-center text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider" style="font-size: 8px;" title="Exclude node from allocation">Excl</th>
                                 </tr>
                             </thead>
                             <tbody id="nodeList1" class="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
@@ -282,6 +292,7 @@ const dashboardHTML = `
                                     <th scope="col" class="px-0.5 py-2 text-center text-xs font-medium text-orange-500 dark:text-orange-300 uppercase tracking-wider" style="font-size: 8px; width: 20px;" title="Shards moving out from this node">↑</th>
                                     <th scope="col" class="px-0.5 py-2 text-center text-xs font-medium text-blue-500 dark:text-blue-300 uppercase tracking-wider" style="font-size: 8px; width: 20px;" title="Shards moving into this node">↓</th>
                                     <th scope="col" class="px-0.5 py-2 text-center text-xs font-medium text-amber-500 dark:text-amber-300 uppercase tracking-wider" style="font-size: 8px; width: 20px;" title="Shards initializing on this node">↔</th>
+                                    <th scope="col" class="px-1 py-2 text-center text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider" style="font-size: 8px;" title="Exclude node from allocation">Excl</th>
                                 </tr>
                             </thead>
                             <tbody id="nodeList2" class="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
@@ -516,6 +527,12 @@ const dashboardHTML = `
             timestamps: []
         };
         
+        // Allocation exclude IPs state
+        let excludedIPs = [];
+        let excludeIPsSource = 'persistent'; // 'transient' or 'persistent'
+        let dnsCache = {};
+        let nodeIPMap = {}; // Maps node name -> IP
+
         // ETA calculation parameters
         const ETA_HISTORY_POINTS = 10; // Points to use for trend calculation
         const ETA_MIN_POINTS = 3;     // Minimum points needed for ETA calculation
@@ -782,13 +799,14 @@ const dashboardHTML = `
                     body: JSON.stringify({ path })
                 });
                 
-                const [health, nodeStats, nodeInfo, catNodes, catShards, shardMovement] = await Promise.all([
+                const [health, nodeStats, nodeInfo, catNodes, catShards, shardMovement, clusterSettings] = await Promise.all([
                     proxyFetch('/_cluster/health'),
                     proxyFetch('/_nodes/stats/jvm,fs,os,process'),
                     proxyFetch('/_nodes'),
-                    proxyFetch('/_cat/nodes?format=json&h=name,heap.percent,ram.percent,cpu,load_1m,node.role,master,version,os'),
+                    proxyFetch('/_cat/nodes?format=json&h=name,heap.percent,ram.percent,cpu,load_1m,node.role,master,version,os,ip'),
                     proxyFetch('/_cat/shards?format=json&h=index,shard,prirep,state,node'),
-                    fetchShardMovementData()
+                    fetchShardMovementData(),
+                    proxyFetch('/_cluster/settings?flat_settings=true')
                 ]);
 
                 if (!health.ok || !nodeStats.ok || !nodeInfo.ok || !catNodes.ok || !catShards.ok) {
@@ -801,6 +819,31 @@ const dashboardHTML = `
                 const catNodesData = await catNodes.json();
                 const catShardsData = await catShards.json();
                 // shardMovement is already parsed from fetchShardMovementData()
+                const clusterSettingsData = clusterSettings.ok ? await clusterSettings.json() : {};
+
+                // Extract excluded IPs from cluster settings (transient takes precedence)
+                let excludeSetting = '';
+                if (clusterSettingsData.transient && clusterSettingsData.transient['cluster.routing.allocation.exclude._ip']) {
+                    excludeSetting = clusterSettingsData.transient['cluster.routing.allocation.exclude._ip'];
+                    excludeIPsSource = 'transient';
+                } else if (clusterSettingsData.persistent && clusterSettingsData.persistent['cluster.routing.allocation.exclude._ip']) {
+                    excludeSetting = clusterSettingsData.persistent['cluster.routing.allocation.exclude._ip'];
+                    excludeIPsSource = 'persistent';
+                } else {
+                    excludeIPsSource = 'persistent';
+                }
+                excludedIPs = excludeSetting ? excludeSetting.split(',').map(ip => ip.trim()).filter(ip => ip) : [];
+
+                // Build node name -> IP map from catNodes data
+                nodeIPMap = {};
+                catNodesData.forEach(node => {
+                    if (node.name && node.ip) {
+                        nodeIPMap[node.name] = node.ip;
+                    }
+                });
+
+                // Update exclude IPs display
+                updateExcludeIPsDisplay(catNodesData);
                 
                 // If successful, show dashboard and update status
                 dashboardContentEl.classList.remove('hidden');
@@ -1272,6 +1315,167 @@ const dashboardHTML = `
             } catch (error) {
                 console.error('Error updating cluster setting:', error);
                 updateConnectionStatus('Failed to update setting ' + settingKey + ': ' + error.message, 'red');
+            }
+        }
+
+        /**
+         * Performs a DNS reverse lookup for an IP address via the backend.
+         */
+        async function dnsLookup(ip) {
+            if (dnsCache[ip]) return dnsCache[ip];
+            try {
+                const response = await fetch('/dns-lookup?ip=' + encodeURIComponent(ip));
+                if (response.ok) {
+                    const data = await response.json();
+                    dnsCache[ip] = data.hostname;
+                    return data.hostname;
+                }
+            } catch (e) {
+                console.error('DNS lookup failed for', ip, e);
+            }
+            dnsCache[ip] = 'N/A';
+            return 'N/A';
+        }
+
+        /**
+         * Updates the Allocation Exclude IPs display section.
+         */
+        async function updateExcludeIPsDisplay(catNodesData) {
+            const container = document.getElementById('excludeIpsList');
+            if (!container) return;
+
+            if (excludedIPs.length === 0) {
+                container.innerHTML = '<span class="text-gray-500 dark:text-gray-400">No IPs/nodes in allocation exclude list.</span>';
+                return;
+            }
+
+            // Build IP -> node name map from catNodes
+            const ipToNode = {};
+            if (catNodesData) {
+                catNodesData.forEach(node => {
+                    if (node.ip && node.name) {
+                        ipToNode[node.ip] = node.name;
+                    }
+                });
+            }
+
+            // Build the table with Remove All button
+            let html = '<div class="flex justify-end mb-2">' +
+                '<button onclick="removeAllFromExcludeList()" class="text-xs px-3 py-1 bg-red-500 hover:bg-red-600 text-white rounded transition-colors" title="Remove all IPs from exclude list">Remove All</button>' +
+                '</div>' +
+                '<table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700">' +
+                '<thead class="bg-gray-50 dark:bg-gray-700"><tr>' +
+                '<th class="px-3 py-2 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">IP</th>' +
+                '<th class="px-3 py-2 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">DNS Hostname</th>' +
+                '<th class="px-3 py-2 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">Node Name</th>' +
+                '<th class="px-3 py-2 text-center text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">Action</th>' +
+                '</tr></thead><tbody class="divide-y divide-gray-200 dark:divide-gray-700">';
+
+            for (const ip of excludedIPs) {
+                const nodeName = ipToNode[ip] || 'N/A';
+                html += '<tr class="hover:bg-gray-50 dark:hover:bg-gray-700">' +
+                    '<td class="px-3 py-2 text-sm font-mono text-gray-900 dark:text-white">' + ip + '</td>' +
+                    '<td class="px-3 py-2 text-sm font-mono text-gray-600 dark:text-gray-300" id="dns_' + ip.replace(/\./g, '_') + '">resolving...</td>' +
+                    '<td class="px-3 py-2 text-sm font-mono text-gray-600 dark:text-gray-300">' + nodeName + '</td>' +
+                    '<td class="px-3 py-2 text-center">' +
+                        '<button onclick="removeNodeFromExcludeList(\'' + ip + '\')" class="text-xs px-2 py-1 bg-green-500 hover:bg-green-600 text-white rounded transition-colors" title="Remove from exclude list">Remove</button>' +
+                    '</td>' +
+                '</tr>';
+            }
+
+            html += '</tbody></table>';
+            container.innerHTML = html;
+
+            // Resolve DNS for each IP asynchronously
+            for (const ip of excludedIPs) {
+                dnsLookup(ip).then(hostname => {
+                    const el = document.getElementById('dns_' + ip.replace(/\./g, '_'));
+                    if (el) el.textContent = hostname;
+                });
+            }
+        }
+
+        /**
+         * Sends an updated exclude._ip value to Elasticsearch.
+         * Writes to both transient and persistent to ensure it takes effect
+         * regardless of where the setting was previously stored.
+         */
+        async function updateExcludeIPsSetting(newValue) {
+            const excludeObj = { _ip: newValue };
+            const settingBody = {
+                transient: { cluster: { routing: { allocation: { exclude: excludeObj } } } },
+                persistent: { cluster: { routing: { allocation: { exclude: Object.assign({}, excludeObj) } } } }
+            };
+
+            const response = await fetch('/proxy', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    path: '/_cluster/settings',
+                    method: 'PUT',
+                    body: JSON.stringify(settingBody)
+                })
+            });
+
+            if (!response.ok) {
+                const errorText = await response.text();
+                throw new Error('HTTP ' + response.status + ': ' + errorText);
+            }
+
+            const result = await response.json();
+            if (!result.acknowledged) {
+                throw new Error('Setting update not acknowledged');
+            }
+            return result;
+        }
+
+        /**
+         * Adds a node's IP to the allocation exclude list.
+         */
+        async function addNodeToExcludeList(ip) {
+            if (!ip) return;
+            try {
+                const newList = excludedIPs.includes(ip) ? excludedIPs : [...excludedIPs, ip];
+                await updateExcludeIPsSetting(newList.join(','));
+                excludedIPs = newList;
+                updateConnectionStatus('Node ' + ip + ' added to allocation exclude list', 'green');
+                fetchAllData();
+            } catch (error) {
+                console.error('Error adding node to exclude list:', error);
+                updateConnectionStatus('Failed to add node to exclude list: ' + error.message, 'red');
+            }
+        }
+
+        /**
+         * Removes a node's IP from the allocation exclude list.
+         */
+        async function removeNodeFromExcludeList(ip) {
+            if (!ip) return;
+            try {
+                const newList = excludedIPs.filter(excludedIp => excludedIp !== ip);
+                const newValue = newList.length > 0 ? newList.join(',') : null;
+                await updateExcludeIPsSetting(newValue);
+                excludedIPs = newList;
+                updateConnectionStatus('Node ' + ip + ' removed from allocation exclude list', 'green');
+                fetchAllData();
+            } catch (error) {
+                console.error('Error removing node from exclude list:', error);
+                updateConnectionStatus('Failed to remove node from exclude list: ' + error.message, 'red');
+            }
+        }
+
+        /**
+         * Removes all IPs from the allocation exclude list.
+         */
+        async function removeAllFromExcludeList() {
+            try {
+                await updateExcludeIPsSetting(null);
+                excludedIPs = [];
+                updateConnectionStatus('All nodes removed from allocation exclude list', 'green');
+                fetchAllData();
+            } catch (error) {
+                console.error('Error clearing exclude list:', error);
+                updateConnectionStatus('Failed to clear exclude list: ' + error.message, 'red');
             }
         }
 
@@ -1823,6 +2027,11 @@ const dashboardHTML = `
                         '<td class="px-1 py-2 whitespace-nowrap text-sm text-orange-500 dark:text-orange-400" style="font-size: 10px; font-weight: bold;">' + (nodeMovement.outgoing || 0) + '</td>' +
                         '<td class="px-1 py-2 whitespace-nowrap text-sm text-blue-500 dark:text-blue-400" style="font-size: 10px; font-weight: bold;">' + (nodeMovement.incoming || 0) + '</td>' +
                         '<td class="px-1 py-2 whitespace-nowrap text-sm text-amber-500 dark:text-amber-400" style="font-size: 10px; font-weight: bold;">' + (nodeMovement.initializing || 0) + '</td>' +
+                        '<td class="px-1 py-2 whitespace-nowrap text-sm text-center">' +
+                            (node.ip && excludedIPs.includes(node.ip)
+                                ? '<button onclick="removeNodeFromExcludeList(\'' + node.ip + '\')" class="text-xs px-1.5 py-0.5 bg-green-500 hover:bg-green-600 text-white rounded transition-colors" title="Remove ' + node.ip + ' from exclude list">✓</button>'
+                                : '<button onclick="addNodeToExcludeList(\'' + node.ip + '\')" class="text-xs px-1.5 py-0.5 bg-red-500 hover:bg-red-600 text-white rounded transition-colors" title="Add ' + node.ip + ' to exclude list">✗</button>') +
+                        '</td>' +
                     '</tr>';
                 tbody.insertAdjacentHTML('beforeend', row);
                 
@@ -1860,7 +2069,7 @@ const dashboardHTML = `
                 const nodeUptime = formatUptime(uptimeData[nodeName]);
                 const nodeGroupInfo = getNodeGroupInfo(nodeName);
                 const cells = row.querySelectorAll('td');
-                if (cells.length >= 15) {
+                if (cells.length >= 16) {
                     // Update the node name cell with group styling
                     cells[0].style.backgroundColor = nodeGroupInfo.bgColor;
                     cells[0].style.borderLeft = '4px solid ' + nodeGroupInfo.color;
@@ -1892,6 +2101,10 @@ const dashboardHTML = `
                     cells[12].innerHTML = '<span style="font-size: 11px; color: #f97316; font-weight: bold;">' + nodeMovement.outgoing + '</span>';
                     cells[13].innerHTML = '<span style="font-size: 11px; color: #3b82f6; font-weight: bold;">' + nodeMovement.incoming + '</span>';
                     cells[14].innerHTML = '<span style="font-size: 11px; color: #f59e0b; font-weight: bold;">' + nodeMovement.initializing + '</span>';
+                    // Update exclude button
+                    cells[15].innerHTML = node.ip && excludedIPs.includes(node.ip)
+                        ? '<button onclick="removeNodeFromExcludeList(\'' + node.ip + '\')" class="text-xs px-1.5 py-0.5 bg-green-500 hover:bg-green-600 text-white rounded transition-colors" title="Remove ' + node.ip + ' from exclude list">✓</button>'
+                        : '<button onclick="addNodeToExcludeList(\'' + node.ip + '\')" class="text-xs px-1.5 py-0.5 bg-red-500 hover:bg-red-600 text-white rounded transition-colors" title="Add ' + node.ip + ' to exclude list">✗</button>';
                 }
                 
                 // Add new data to charts and update them

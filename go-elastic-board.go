@@ -12,6 +12,7 @@ import (
 	"io"
 	"log"
 	"maps"
+	"net"
 	"net/http"
 	"os"
 	"os/signal"
@@ -357,6 +358,9 @@ func main() {
 	// Register the proxy handler for Elasticsearch requests
 	http.Handle("/proxy", authMiddleware(http.HandlerFunc(proxyHandler)))
 
+	// Register the DNS lookup handler
+	http.Handle("/dns-lookup", authMiddleware(http.HandlerFunc(dnsLookupHandler)))
+
 	// Get server address and port from config
 	address := config.Server.Address
 	port := config.Server.Port
@@ -519,4 +523,30 @@ func proxyHandler(w http.ResponseWriter, r *http.Request) {
 	maps.Copy(w.Header(), esRes.Header)
 	w.WriteHeader(esRes.StatusCode)
 	io.Copy(w, esRes.Body)
+}
+
+// dnsLookupHandler performs reverse DNS lookup for a given IP address
+func dnsLookupHandler(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodGet {
+		http.Error(w, "Only GET method is allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	ip := r.URL.Query().Get("ip")
+	if ip == "" {
+		http.Error(w, "Missing 'ip' query parameter", http.StatusBadRequest)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+
+	names, err := net.LookupAddr(ip)
+	if err != nil || len(names) == 0 {
+		json.NewEncoder(w).Encode(map[string]string{"ip": ip, "hostname": "N/A"})
+		return
+	}
+
+	// Remove trailing dot from DNS names
+	hostname := strings.TrimSuffix(names[0], ".")
+	json.NewEncoder(w).Encode(map[string]string{"ip": ip, "hostname": hostname})
 }
