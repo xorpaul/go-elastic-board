@@ -1663,6 +1663,8 @@ const dashboardHTML = `
                 'stage': { color: '#f97316', bgColor: '#ea580c' }, // orange - much darker
                 'data': { color: '#ec4899', bgColor: '#be185d' }, // pink - much darker
                 'master': { color: '#6366f1', bgColor: '#4f46e5' }, // indigo - much darker
+                'wtr': { color: '#14b8a6', bgColor: '#0f766e' },   // teal - much darker
+                'lgr': { color: '#a855f7', bgColor: '#7e22ce' },   // purple - much darker
                 'default': { color: '#6b7280', bgColor: '#4b5563' } // gray - much darker
             };
             
