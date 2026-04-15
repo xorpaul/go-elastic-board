@@ -2,6 +2,26 @@
 
 All notable changes to this project will be documented in this file.
 
+## [v0.0.5] - 2026-04-15
+
+### 📊 New Feature: Allocation Exclude IP Management
+
+- **Exclude IPs Display**: New "Allocation Exclude IPs" section above the nodes table showing the current `cluster.routing.allocation.exclude._ip` setting
+  - Displays "No IPs/nodes in allocation exclude list" when empty
+  - When IPs are present, shows a table with IP, DNS hostname (reverse lookup), and matched node name
+- **DNS Reverse Lookup**: Added backend `/dns-lookup` endpoint for resolving IPs to hostnames with client-side caching
+- **Exclude/Include Buttons**: Each node row now has an "Excl" column with a button to add (red ✗) or remove (green ✓) the node from the allocation exclude list
+- **Remove All Button**: One-click button to clear the entire allocation exclude list
+- **Transient & Persistent Handling**: Writes exclude setting to both transient and persistent to ensure changes take effect regardless of where the setting was previously stored
+
+### 🔧 Technical Improvements
+
+- Added `ip` field to `/_cat/nodes` query for IP-to-node mapping
+- Added `/_cluster/settings` fetch to the main data refresh cycle for real-time exclude list updates
+- New Go handler `dnsLookupHandler` using `net.LookupAddr` for reverse DNS resolution
+
+---
+
 ## [v0.0.4] - 2026-04-15
 
 ### 🎨 UI Improvements
