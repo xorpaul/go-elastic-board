@@ -11,6 +11,10 @@ server:
   # Port to listen on
   port: "8080"
 
+# Elasticsearch host
+elasticsearch:
+  url: "http://localhost:9200"
+
 # TLS Configuration for Client Certificate Authentication
 tls:
   # Enable or disable TLS client certificate authentication

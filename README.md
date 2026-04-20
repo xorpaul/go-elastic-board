@@ -89,6 +89,10 @@ server:
   address: "" # Bind to all interfaces (use "127.0.0.1" for localhost only)
   port: "8080" # Port to listen on
 
+# Elasticsearch host
+elasticsearch:
+  url: "http://localhost:9200"
+
 # TLS Configuration (optional)
 tls:
   enabled: false # Set to true to enable client certificate authentication
@@ -158,8 +162,7 @@ Options:
 
 1. Start the go-elastic-board server
 2. Open your web browser to the configured address (default: http://localhost:8080)
-3. Enter your Elasticsearch cluster URL (e.g., `http://elasticsearch:9200`)
-4. Click "Start" to begin monitoring
+3. Click "Start" to begin monitoring
 
 ### Dashboard Features
 
@@ -269,4 +272,17 @@ The dashboard provides a comprehensive view of your Elasticsearch cluster with:
 
 ---
 
+### Run with Docker Compose (no Elasticsearch container)
+
+This repository ships with a lean Docker setup under `docker/` that runs the dashboard only.  
+It assumes you already have access to an Elasticsearch endpoint.
+- remember to change docker/config.yaml according to your needs
+
+**Quickstart**
+```bash
+git clone https://github.com/xorpaul/go-elastic-board.git
+cd go-elastic-board
+cd docker
+sudo docker compose up -d --build
+```
 **go-elastic-board** - Simple, powerful Elasticsearch cluster monitoring made easy.
