@@ -100,6 +100,33 @@ tls:
     - "monitoring-user"
 ```
 
+### Elasticsearch Backend
+
+By default the dashboard proxies to `http://localhost:9200` with no authentication. To connect to a secured cluster add an `elasticsearch:` block:
+
+```yaml
+elasticsearch:
+  url: "https://my-es-node:9200"
+
+  # Pick one auth method:
+  api_key: "VnVhQ2ZH..."          # "encoded" field from POST /_security/api_key
+  # service_account_token: "AAE..." # Bearer token from /_security/service/elastic/...
+  # username: "elastic"
+  # password: "secret"
+
+  # TLS (optional):
+  ca_file: "/etc/pki/ca.pem"      # CA cert to verify the ES server certificate
+  insecure_skip_verify: false      # true to skip TLS verification (not recommended)
+```
+
+**API key** is the recommended auth method for production. Create one with the `monitor` and `manage` cluster privileges — `monitor` covers all read endpoints the dashboard uses, `manage` is needed for the allocation-exclude button and cluster settings writes:
+
+```
+curl -sk -XPOST -u "elastic:PASSWORD" "https://my-es-node:9200/_security/api_key" -H "Content-Type: application/json" -d '{"name":"go-elastic-board","role_descriptors":{"monitor":{"cluster":["monitor","manage"],"indices":[{"names":["*"],"privileges":["monitor"]}]}}}'
+```
+
+Use the `encoded` field from the response as the `api_key` value in the config.
+
 ### TLS Client Certificate Authentication
 
 For production environments, enable TLS client certificate authentication:
@@ -225,11 +252,12 @@ To check the version and build information:
 
 ### Common Issues
 
-1. **Connection Issues**: Ensure Elasticsearch is accessible and CORS is properly configured
-2. **TLS Certificate Errors**: Verify certificate paths and permissions in the configuration
-3. **Permission Denied**: Check that the specified ports are available and the user has binding permissions
-4. **Certificate Reload Failures**: Check file permissions and paths. Enable debug mode to see detailed reload logs
-5. **File Watcher Issues**: Ensure the application has read access to certificate directories
+1. **Connection Failed / all requests 401**: Elasticsearch has security enabled. Add an `elasticsearch:` block with the correct `url` and auth credentials. Check that the `api_key` value is the `encoded` field from the key creation response, not the raw `id` or `api_key` fields.
+2. **Browser login popup**: The dashboard is proxying a `WWW-Authenticate` header from Elasticsearch — auth credentials are missing or invalid. Verify the `api_key` value and that the key has not been invalidated.
+3. **TLS Certificate Errors**: Verify certificate paths and permissions in the configuration. For a secured ES cluster set `ca_file` to the CA that issued the ES node certificates.
+4. **Permission Denied**: Check that the specified ports are available and the user has binding permissions.
+5. **Certificate Reload Failures**: Check file permissions and paths. Enable debug mode to see detailed reload logs.
+6. **File Watcher Issues**: Ensure the application has read access to certificate directories.
 
 ### Debug Mode
 
