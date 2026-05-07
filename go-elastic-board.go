@@ -44,10 +44,22 @@ type ServerConfig struct {
 	Port    string `yaml:"port"`
 }
 
+// ElasticsearchConfig holds connection settings for the Elasticsearch backend
+type ElasticsearchConfig struct {
+	URL                string `yaml:"url"`
+	APIKey             string `yaml:"api_key"`              // base64-encoded id:key (the "encoded" field from /_security/api_key)
+	ServiceAccountToken string `yaml:"service_account_token"` // Bearer token
+	Username           string `yaml:"username"`
+	Password           string `yaml:"password"`
+	CAFile             string `yaml:"ca_file"`
+	InsecureSkipVerify bool   `yaml:"insecure_skip_verify"`
+}
+
 // Config holds the application configuration
 type Config struct {
-	Server ServerConfig `yaml:"server"`
-	TLS    TLSConfig    `yaml:"tls"`
+	Server        ServerConfig        `yaml:"server"`
+	TLS           TLSConfig           `yaml:"tls"`
+	Elasticsearch ElasticsearchConfig `yaml:"elasticsearch"`
 }
 
 // CertificateManager handles automatic reloading of TLS certificates
@@ -69,6 +81,7 @@ var (
 	verbose      bool
 	config       Config
 	certManager  *CertificateManager
+	esClient     *http.Client
 )
 
 // NewCertificateManager creates a new certificate manager with file watching
@@ -231,6 +244,50 @@ func (cm *CertificateManager) Close() error {
 	return nil
 }
 
+// esTransport injects authentication headers into every Elasticsearch request
+type esTransport struct {
+	base   http.RoundTripper
+	config ElasticsearchConfig
+}
+
+func (t *esTransport) RoundTrip(req *http.Request) (*http.Response, error) {
+	switch {
+	case t.config.APIKey != "":
+		req.Header.Set("Authorization", "ApiKey "+t.config.APIKey)
+	case t.config.ServiceAccountToken != "":
+		req.Header.Set("Authorization", "Bearer "+t.config.ServiceAccountToken)
+	case t.config.Username != "":
+		req.SetBasicAuth(t.config.Username, t.config.Password)
+	}
+	return t.base.RoundTrip(req)
+}
+
+// buildESClient constructs the HTTP client used for all Elasticsearch requests
+func buildESClient() error {
+	tlsCfg := &tls.Config{
+		InsecureSkipVerify: config.Elasticsearch.InsecureSkipVerify,
+	}
+
+	if config.Elasticsearch.CAFile != "" {
+		caCert, err := os.ReadFile(config.Elasticsearch.CAFile)
+		if err != nil {
+			return fmt.Errorf("elasticsearch ca_file: %v", err)
+		}
+		pool := x509.NewCertPool()
+		if !pool.AppendCertsFromPEM(caCert) {
+			return fmt.Errorf("elasticsearch ca_file: no valid certificates found")
+		}
+		tlsCfg.RootCAs = pool
+	}
+
+	base := &http.Transport{TLSClientConfig: tlsCfg}
+	esClient = &http.Client{
+		Transport: &esTransport{base: base, config: config.Elasticsearch},
+		Timeout:   30 * time.Second,
+	}
+	return nil
+}
+
 // loadConfig loads configuration from YAML file
 func loadConfig(configFile string) error {
 	if configFile == "" {
@@ -242,6 +299,9 @@ func loadConfig(configFile string) error {
 			},
 			TLS: TLSConfig{
 				Enabled: false,
+			},
+			Elasticsearch: ElasticsearchConfig{
+				URL: "http://localhost:9200",
 			},
 		}
 		return nil
@@ -255,6 +315,9 @@ func loadConfig(configFile string) error {
 		},
 		TLS: TLSConfig{
 			Enabled: true,
+		},
+		Elasticsearch: ElasticsearchConfig{
+			URL: "http://localhost:9200",
 		},
 	}
 
@@ -339,6 +402,11 @@ func main() {
 	if err != nil {
 		log.Fatalf("Failed to load configuration: %v", err)
 	}
+
+	if err := buildESClient(); err != nil {
+		log.Fatalf("Failed to build Elasticsearch client: %v", err)
+	}
+	log.Printf("Elasticsearch backend: %s", config.Elasticsearch.URL)
 
 	// Wrap handlers with client cert auth middleware
 	authMiddleware := clientCertAuthMiddleware
@@ -492,7 +560,7 @@ func proxyHandler(w http.ResponseWriter, r *http.Request) {
 		method = http.MethodGet
 	}
 
-	esURL := "http://localhost:9200" + reqBody.Path
+	esURL := config.Elasticsearch.URL + reqBody.Path
 
 	var esReq *http.Request
 	var err error
@@ -513,14 +581,20 @@ func proxyHandler(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	esRes, err := http.DefaultClient.Do(esReq)
+	esRes, err := esClient.Do(esReq)
 	if err != nil {
 		http.Error(w, "Failed to fetch from Elasticsearch: "+err.Error(), http.StatusServiceUnavailable)
 		return
 	}
 	defer esRes.Body.Close()
 
+	if verbose || esRes.StatusCode >= 400 {
+		log.Printf("ES %s %s -> %d", method, reqBody.Path, esRes.StatusCode)
+	}
+
 	maps.Copy(w.Header(), esRes.Header)
+	// Never forward ES auth challenges — they trigger browser login popups
+	w.Header().Del("WWW-Authenticate")
 	w.WriteHeader(esRes.StatusCode)
 	io.Copy(w, esRes.Body)
 }
